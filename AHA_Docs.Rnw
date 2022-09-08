@@ -1,0 +1,163 @@
+\documentclass{article}
+\usepackage[ margin=1in]{geometry}
+\usepackage{multicol}
+\setlength\parindent{0pt}
+\setlength{\parskip}{\baselineskip}%
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+
+\section*{Day 1 - Consent, MEP+/-, Clinical Evals}
+\begin{multicols}{2}
+\subsection*{Demographics, Consent, Screening}
+\begin{tabular}{@{}p{2in}p{-1in}p{.75in}@{}}
+DOT && \hrulefill\\
+\\
+Subject ID && \hrulefill\\
+\\
+Consent && \hrulefill\\
+\\
+Edinburgh Handedness Survey && \hrulefill\\
+\\
+Frenchay Aphasia Screen && \hrulefill\\ \\
+\\
+ && \\
+\\
+ && \\
+\\
+ && \\
+
+\end{tabular}
+\columnbreak
+\subsection*{MEP's}
+\begin{tabular}{@{}p{2in}p{0in}p{.75in}@{}}
+
+L Hem. MEP +/- && \hrulefill\\
+\\
+R Hem. MEP +/-  && \hrulefill\\
+\\
+L Hem. MEP Thresh. && \hrulefill\\
+\\
+R Hem. MEP Thresh. && \hrulefill\\
+\\
+ && \\
+\\
+ && \\
+ \\
+ && \\
+\\
+ && \\
+
+\end{tabular}
+\end{multicols}
+\vspace{.25in}
+\begin{multicols}{2}
+\subsection*{Clinical Evals}
+\begin{tabular}{@{}p{2in}p{-1in}p{.75in}@{}}
+DOT && \hrulefill\\
+\\
+Subject ID && \hrulefill\\
+\\
+Left Arm - Sit - NoVision && \hrulefill\\
+\\
+Left Arm - Stand - Vision && \hrulefill\\
+\\
+Left Arm - Sit - Vision && \hrulefill\\
+ && \\
+\\
+ && \\
+ \\
+  && \\
+
+
+\end{tabular}
+\columnbreak
+\subsection*{Consent, Screening, and MEP's}
+\begin{tabular}{@{}p{2in}p{0in}p{.75in}@{}}
+Consent && \hrulefill\\
+\\
+Edinburgh Handedness Survey && \hrulefill\\
+\\
+Left Arm - Stand - Vision && \hrulefill\\
+\\
+Left Arm - Sit - Vision && \hrulefill\\
+\\
+L Hem. MEP +/- && \hrulefill\\
+\\
+R Hem. MEP +/-  && \hrulefill\\
+\\
+L Hem. MEP Thresh. && \hrulefill\\
+\\
+R Hem. MEP Thresh. && \hrulefill\\
+
+\end{tabular}
+\end{multicols}
+\newpage{}
+\section*{Day 2 - Neurophys}
+\begin{multicols}{2}
+\columnbreak
+\subsection*{SSEP's (minimal intensity to produce twitch in thenar muscles)} 
+
+\begin{tabular}{@{}p{2in}p{0in}p{.5in}@{}}
+Right Arm - Stand - NoVision && \hrulefill\\
+\\
+Right Arm - Sit - NoVision && \hrulefill\\
+\\
+Left Arm - Stand - NoVision && \hrulefill\\
+\\
+Left Arm - Sit - NoVision && \hrulefill\\
+\\
+Right Arm - Stand - Vision && \hrulefill\\
+\\
+Right Arm - Sit - Vision && \hrulefill\\
+\\
+Left Arm - Stand - Vision && \hrulefill\\
+\\
+Left Arm - Sit - Vision && \hrulefill\\
+\end{tabular}
+\end{multicols}
+
+\vspace{.25in}
+\begin{multicols}{2}
+\subsection*{Movement Discrimination Threshold}
+\begin{tabular}{@{}p{2in}p{0in}p{.5in}@{}}
+Right Arm - Stand - NoVision && \hrulefill\\
+\\
+Right Arm - Sit - NoVision && \hrulefill\\
+\\
+Left Arm - Stand - NoVision && \hrulefill\\
+\\
+Left Arm - Sit - NoVision && \hrulefill\\
+\\
+Right Arm - Stand - Vision && \hrulefill\\
+\\
+Right Arm - Sit - Vision && \hrulefill\\
+\\
+Left Arm - Stand - Vision && \hrulefill\\
+\\
+Left Arm - Sit - Vision && \hrulefill\\
+\end{tabular}
+
+\columnbreak
+\subsection*{Kinarm Trace}
+\begin{tabular}{@{}p{2in}p{0in}p{.5in}@{}}
+Right Arm - Stand - NoVision && \hrulefill\\
+\\
+Right Arm - Sit - NoVision && \hrulefill\\
+\\
+Left Arm - Stand - NoVision && \hrulefill\\
+\\
+Left Arm - Sit - NoVision && \hrulefill\\
+\\
+Right Arm - Stand - Vision && \hrulefill\\
+\\
+Right Arm - Sit - Vision && \hrulefill\\
+\\
+Left Arm - Stand - Vision && \hrulefill\\
+\\
+Left Arm - Sit - Vision && \hrulefill\\
+\end{tabular}
+\end{multicols}
+
+\end{document}

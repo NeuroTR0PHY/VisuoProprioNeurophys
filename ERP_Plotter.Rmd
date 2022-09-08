@@ -1,0 +1,154 @@
+---
+title: "ERP Plotting"
+author: "Nathan Baune"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Requisite Packages
+```{r}
+require(ggplot2)
+require(plotly)
+#devtools::install_github("norment/normentR") #uncomment if you need to install the norment package. Must have the devtools package installed
+
+require(normentR)
+```
+
+
+## Set WD
+```{r}
+setwd("~/Documents")
+```
+
+
+## Load data
+```{r}
+#quiet = read.table("QuietERP.txt", header = T)
+#tandem = read.table("TandemERP.txt", header = T)
+
+#quiet$Condition = "Quiet"
+#tandem$Condition = "Tandem"
+#dat = rbind(quiet, tandem)
+
+#w_rest = read.table("wrist_rest.txt", header = T)
+#w_active = read.table("wrist_active.txt", header = T)
+#e_rest = read.table("elbow_rest.txt", header = T)
+#e_active = read.table("elbow_active.txt", header = T)
+#w_rest$location = "Wrist"
+#w_active$location = "Wrist"
+#w_rest$condition = "Rest"
+#w_active$condition = "Active"
+#e_rest$location = "Elbow"
+#e_active$location = "Elbow"
+#e_rest$condition = "Rest"
+#e_active$condition = "Active"
+#dat = rbind(w_rest, w_active)
+#rest = read.table("UE_rest.txt", header = T)
+#rest_mean = aggregate(rest,list(rest$Time), FUN = "mean")
+#rest_sd = aggregate(rest,list(rest$Time), FUN = "sd")
+#grasp = read.table("UE_grasp.txt", header = T)
+#grasp_mean = aggregate(grasp, list(grasp$Time), FUN = "mean")
+#tactile = read.table("UE_tactile.txt", header = T)
+#tactile_mean = aggregate(tactile, list(tactile$Time), FUN = "mean")
+#squeeze = read.table("UE_squeeze.txt", header = T)
+#squeeze_mean = aggregate(squeeze, list(squeeze$Time), FUN = "mean")
+#rest_mean$Condition = "A: Rest"
+#grasp_mean$Condition = "B: Posture"
+#tactile_mean$Condition = "C: Tactile"
+#squeeze_mean$Condition = "D: Squeeze"
+#rest$Condition = "A: Rest"
+#grasp$Condition = "B: Posture"
+#tactile$Condition = "C: Tactile"
+#squeeze$Condition = "D: Squeeze"
+
+#Tactile_NV = read.table("grasp_novis.txt", header = T)
+#Tactile_NV_m = aggregate(Tactile_NV, list(Tactile_NV$Time), FUN = "mean")
+#Tactile_V = read.table("grasp_vis.txt", header = T)
+#Tactile_V_m = aggregate(Tactile_V, list(Tactile_V$Time), FUN = "mean")
+#Posture_NV = read.table("open_novis.txt", header = T)
+#Posture_NV_m = aggregate(Posture_NV, list(Posture_NV$Time), FUN = "mean")
+#Posture_V = read.table("open_vis.txt", header = T)
+#Posture_V_m = aggregate(Posture_V, list(Posture_V$Time), FUN = "mean")
+
+#Posture_NV_$Condition = "A: Posture NV"
+#Posture_V_$Condition = "B: Posture Vis"
+#Tactile_NV$Condition = "C: Tactile NV"
+#Tactile_V$Condition = "D: Tactile Vis"
+
+setwd("~/Downloads/AHA_piloting/Pilot00/SSEP")
+
+SSEP_VISION = read.table("VisionCSV.txt", header = T)
+SSEP_VISION$CONDITION = "Vision"
+SSEP_NOVISION = read.table("NoVisionCSV.txt", header = T)
+SSEP_NOVISION$CONDITION = "NoVision"
+dat = rbind(SSEP_VISION, SSEP_NOVISION)
+
+SSEP_VISION = read.table("visCSV.txt", header = T)
+SSEP_VISION$CONDITION = "Vision"
+SSEP_NOVISION = read.table("novisCSV.txt", header = T)
+SSEP_NOVISION$CONDITION = "NoVision"
+dat = rbind(SSEP_VISION, SSEP_NOVISION)
+
+SSEP_STAND = read.table("StandingCSV.txt", header = T)
+SSEP_STAND$CONDITION = "Stand"
+SSEP_SIT = read.table("SitCSV.txt", header = T)
+SSEP_SIT$CONDITION = "Sit"
+dat = rbind(SSEP_STAND, SSEP_SIT)
+
+#dat = rbind(rest_mean, grasp_mean, tactile_mean, squeeze_mean)
+#dat = rbind(rest, grasp,tactile, squeeze)
+#dat = rbind(Posture_NV_m, Posture_V_m, Tactile_NV_m, Tactile_V_m)
+#dat = rbind(Tactile_NV, Tactile_V)
+#dat_mean = aggregate(dat, list(dat$Time), FUN="mean")
+```
+
+ ## Custom Function
+```{r}
+shift_axis <- function(p, y=0){
+  g <- ggplotGrob(p)
+  dummy <- data.frame(y=y)
+  ax <- g[["grobs"]][g$layout$name == "axis-b"][[1]]
+  p + annotation_custom(grid::grobTree(ax, vp = grid::viewport(y=1, height=sum(ax$height))), 
+                        ymax=y, ymin=y) +
+    geom_hline(aes(yintercept=y), data = dummy) +
+    theme(axis.text.x = element_blank(), 
+          axis.ticks.x=element_blank())
+
+}
+```
+ 
+## remove stim artifact
+```{r}
+dat[dat$Time > 0 & dat$Time < 12,] = 0
+```
+
+
+## Plot GGPLOT
+```{r}
+plot = ggplot(data = dat, aes(x = Time, y = CPz, color = CONDITION, fill = )) + 
+  geom_line(size = 0.75) + ylim(-5, 5) + xlim(-100, 1000)+
+  ggtitle("") + 
+  #geom_vline(xintercept = 0) +  
+  labs(x = "Time (ms)", y = "Amplitude (µV)") + 
+  theme_norment(ticks = TRUE, grid = FALSE) + 
+  theme(legend.position = c(0.9,0.2), axis.text.x = element_text(vjust = -0.1) + 
+  #scale_x_continuous(breaks = c(seq(-100,200,100))) + 
+  #scale_y_continuous(breaks = c(seq(-12,-1,2), seq(2,12,2))) +
+  coord_cartesian()
+
+  )
+
+shift_axes(plot, x = -100, y = -5)
+```
+
+
+
+## Plot Plotly
+```{r}
+plot_ly(dat, x = ~Time, y = ~P3, color = ~CONDITION, mode = 'lines', type = "scatter")
+
+```
+
