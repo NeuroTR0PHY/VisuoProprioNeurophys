@@ -1,17 +1,19 @@
+#Load packages
 require(ggplot2)
 require(psych)
 
+#set directory (need to change location), load all files
 setwd("~/Downloads/AHA_piloting/AHA_PilotingBehavior/Pilot04/Trace")
 files = list.files()
 data = read.csv(files[8], header = T)
 
 bins = rep(0,18)
 endbins = rep(0,18)
-bins = which(data$Event.name == "Hand Velocity Reached", arr.ind=TRUE)
-endbins = which(data$Event.name == "Trial is over", arr.ind=TRUE)
+bins = which(data$Event.name == "Hand Velocity Reached", arr.ind=TRUE) #find start rows
+endbins = which(data$Event.name == "Trial is over", arr.ind=TRUE) #find end rows
 
-
-Limb = "Right"
+#need to change, used to label data ###will need to update to automatically loop through all participants
+Limb = "Right" 
 Vision = "VS"
 
 df = data[bins[1]:endbins[1],]
