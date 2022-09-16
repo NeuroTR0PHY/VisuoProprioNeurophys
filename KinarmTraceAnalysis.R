@@ -25,12 +25,22 @@ df$trial = 1
 df$vision = Vision[x]
 df$limb = Limb[x]
 df$posture = Posture[x]
+df$position = "Center"
 for(i in 2:18){
   df2 = data[bins[i]:endbins[i],]
   df2$trial = i
   df2$vision = Vision[x]
   df2$limb = Limb[x]
   df2$posture = Posture[x]
+  if(i == 2 | i == 3){
+    df$position = "Center"
+  }
+  if(i == 4 | i == 5 | i == 6){
+    df$position = "Left"
+  }
+  if(i == 7 | i == 8 | i == 9){
+    df$position = "Right"
+  }
   df = rbind(df, df2)
 }
 
@@ -56,7 +66,6 @@ if(!exists("masterdata")){
 if(exists("masterdata")){
   masterdata = rbind(masterdata, df)
 }
-
 }
 
 #write all of the data to a .csv file
