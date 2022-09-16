@@ -47,7 +47,7 @@ df$distance = sqrt((df$TARGET_X - df$Right..Hand.position.X)^2 +(df$TARGET_Y - d
 #just to visualize the mean values per trial, should be 18 trials
 tapply(df$distance, list(df$trial),mean)
 
-}
+
 
 #creates and then updates the masterdata dataframe
 if(!exists("masterdata")){
@@ -55,6 +55,8 @@ if(!exists("masterdata")){
 }
 if(exists("masterdata")){
   masterdata = rbind(masterdata, df)
+}
+
 }
 
 #write all of the data to a .csv file
