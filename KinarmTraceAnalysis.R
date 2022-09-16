@@ -5,7 +5,9 @@ require(psych)
 #set directory (need to change location), load all files, righ tnow have to change the value in files[x], but will make into a loop
 setwd("~/Downloads/AHA_piloting/AHA_PilotingBehavior/Pilot04/Trace")
 files = list.files()
-data = read.csv(files[8], header = T)
+
+for(x in 1:8){
+data = read.csv(files[x], header = T)
 
 bins = rep(0,18)
 endbins = rep(0,18)
@@ -13,18 +15,22 @@ bins = which(data$Event.name == "Hand Velocity Reached", arr.ind=TRUE) #find sta
 endbins = which(data$Event.name == "Trial is over", arr.ind=TRUE) #find end rows
 
 #need to change, used to label data ###will need to update to automatically loop through all participants
-Limb = "Right" 
-Vision = "VS"
+Limb = c("Right", "Right", "Left", "Left", "Right", "Right", "Left", "Left")
+Vision = c("NV", "NV", "NV", "NV", "VS", "VS", "VS", "VS")
+Posture = c("Stand", "seat", "Stand", "Seat", "Stand", "seat", "Stand", "Seat")
+
 
 df = data[bins[1]:endbins[1],]
 df$trial = 1
-df$vision = Vision
-df$limb = Limb
+df$vision = Vision[x]
+df$limb = Limb[x]
+df$posture = Posture[x]
 for(i in 2:18){
   df2 = data[bins[i]:endbins[i],]
   df2$trial = i
-  df2$vision = Vision
-  df2$limb = Limb
+  df2$vision = Vision[x]
+  df2$limb = Limb[x]
+  df2$posture = Posture[x]
   df = rbind(df, df2)
 }
 
@@ -40,6 +46,8 @@ df$distance = sqrt((df$TARGET_X - df$Right..Hand.position.X)^2 +(df$TARGET_Y - d
 
 #just to visualize the mean values per trial, should be 18 trials
 tapply(df$distance, list(df$trial),mean)
+
+}
 
 #creates and then updates the masterdata dataframe
 if(!exists("masterdata")){
