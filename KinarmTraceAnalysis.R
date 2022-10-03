@@ -3,7 +3,7 @@ require(ggplot2)
 require(psych)
 
 #set directory (need to change location), load all files, righ tnow have to change the value in files[x], but will make into a loop
-setwd("~/Downloads/AHA_piloting/AHA_PilotingBehavior/Pilot04/Trace")
+setwd("~/Downloads/AHA_EEG/AHA_Behavior/Pilot04/Trace")
 files = list.files()
 
 for(x in 1:8){
@@ -17,7 +17,7 @@ endbins = which(data$Event.name == "Trial is over", arr.ind=TRUE) #find end rows
 #need to change, used to label data ###will need to update to automatically loop through all participants
 Limb = c("Right", "Right", "Left", "Left", "Right", "Right", "Left", "Left")
 Vision = c("NV", "NV", "NV", "NV", "VS", "VS", "VS", "VS")
-Posture = c("Stand", "seat", "Stand", "Seat", "Stand", "seat", "Stand", "Seat")
+Posture = c("Stand", "Seat", "Stand", "Seat", "Stand", "Seat", "Stand", "Seat")
 
 
 df = data[bins[1]:endbins[1],]
@@ -25,22 +25,22 @@ df$trial = 1
 df$vision = Vision[x]
 df$limb = Limb[x]
 df$posture = Posture[x]
-df$position = "Center"
+#df$position = "Center"
 for(i in 2:18){
   df2 = data[bins[i]:endbins[i],]
   df2$trial = i
   df2$vision = Vision[x]
   df2$limb = Limb[x]
   df2$posture = Posture[x]
-  if(i == 2 | i == 3){
-    df$position = "Center"
-  }
-  if(i == 4 | i == 5 | i == 6){
-    df$position = "Left"
-  }
-  if(i == 7 | i == 8 | i == 9){
-    df$position = "Right"
-  }
+  #if(i == 2 | i == 3){
+  #  df2$position = "Center"
+ # }
+ # if(i == 4 | i == 5 | i == 6){
+  #  df2$position = "Left"
+ # }
+ # if(i == 7 | i == 8 | i == 9){
+   # df2$position = "Right"
+  #}
   df = rbind(df, df2)
 }
 
