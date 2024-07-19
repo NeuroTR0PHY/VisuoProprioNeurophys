@@ -1,0 +1,217 @@
+---
+title: "SensoryAnalyses_Kinarm"
+author: "Nathan Baune"
+format: pdf
+editor: visual
+jupyter: python3
+---
+
+## Prerequisites
+
+```{r}
+require(ggplot2)
+require(tidyverse)
+require(readxl)
+require(plotly)
+```
+
+```{r}
+#subjects level
+setwd("~/Downloads/AHA_EEG/AHA_Behavior")
+sub_id = "NOA02"
+Group = "NOA"
+JAM = read_excel(paste0(sub_id,"/JointAngleMatching.xlsx"), sheet = 1)
+LOC_L = read_excel(paste0(sub_id,"/Locognosia.xlsx"), sheet = 1)
+LOC_R = read_excel(paste0(sub_id,"/Locognosia.xlsx"), sheet = 2)
+LOC = rbind(LOC_L[,1:4], LOC_R[,1:4])
+THRESH =read_excel(paste0(sub_id,"/TactileThresh.xlsx"), sheet = 1)
+
+JAM$ErrorDiff = abs(JAM$Angle - JAM$Error)
+JAM_AGG = aggregate(JAM$ErrorDiff, data = JAM, by = list(JAM$Joint, JAM$Limb), FUN = mean)
+LOC_AGG = aggregate(LOC$Error, data = LOC, by = list(LOC$Hand), FUN = mean)
+THRESH_AGG = aggregate(THRESH$Filament, data = THRESH, by = list(THRESH$Site, THRESH$Hand), FUN = mean)
+names(JAM_AGG) = c("Joint", "Limb", "Error")
+names(LOC_AGG) = c("Limb", "Error")
+names(THRESH_AGG) = c("Site","Hand", "Error")
+####ADD SUBJECT ID AS A COLUMN!!!!!!!
+JAM_AGG = cbind(Group, JAM_AGG)
+LOC_AGG = cbind(Group, LOC_AGG)
+THRESH_AGG = cbind(Group, THRESH_AGG)
+
+JAM_AGG$subject = sub_id
+LOC_AGG$subject = sub_id
+THRESH_AGG$subject = sub_id
+
+write.csv(JAM_AGG, paste0(sub_id,"/JAM_aggregate.csv"))
+write.csv(LOC_AGG, paste0(sub_id,"/LOC_aggregate.csv"))
+write.csv(THRESH_AGG, paste0(sub_id,"/THRESH_aggregate.csv"))
+```
+
+```{r}
+setwd("/Users/nathan/Downloads/AHA_EEG/AHA_Behavior")
+datadirs = c("NYA01","NYA02","NYA03","NYA04","NYA05","NYA06","NYA07","NYA08","NYA09","NYA10","NYA11","NYA12","NYA13","NYA14","NOA01","NOA02", "NOA03","NOA04")
+for(i in 1:length(datadirs)){
+if(!exists("jam_g")){
+  jam_g = read.csv2(paste0(datadirs[i],"/JAM_aggregate.csv"), header = T, sep =",")
+}else{
+  jam_g = rbind(jam_g, read.csv2(paste0(datadirs[i],"/JAM_aggregate.csv"), header = T, sep =","))
+}
+  
+  if(!exists("loc_g")){
+    loc_g = read.csv2(paste0(datadirs[i],"/LOC_aggregate.csv"), header = T, sep =",")
+  }else{
+    loc_g = rbind(loc_g, read.csv2(paste0(datadirs[i],"/LOC_aggregate.csv"), header = T, sep =","))
+  }
+  
+  if(!exists("thresh_g")){
+    thresh_g = read.csv2(paste0(datadirs[i],"/THRESH_aggregate.csv"), header = T, sep =",")
+  }else{
+    thresh_g = rbind(thresh_g, read.csv2(paste0(datadirs[i],"/THRESH_aggregate.csv"), header = T, sep =","))
+  }
+}
+
+JAM_GROUP = jam_g
+LOC_GROUP = loc_g
+THRESH_GROUP = thresh_g
+```
+
+## Joint Angle Matching
+
+```{r}
+JAM_GROUP$Sub = factor(JAM_GROUP$subject)
+JAM_GROUP$Error = as.numeric(JAM_GROUP$Error)
+ggplot(data = JAM_GROUP, aes(x = Limb, y = Error, fill = subject)) +
+  geom_bar(stat = "identity", position=position_dodge())
+
+```
+
+### Wrist
+
+```{r}
+datatemp = JAM_GROUP[JAM_GROUP$Joint == "Wrist",]
+ggplot((data = datatemp), aes(x = Limb, y = Error, fill = Group))+ geom_dotplot(binaxis='y', stackdir='center', dotsize=1, alpha = 0.5)  + ggtitle("Joint Angle Matching (Wrist): Limb x Group") + geom_line(aes(group = subject))
+
+```
+
+### Elbow
+
+```{r}
+ggplot((data = JAM_GROUP[JAM_GROUP$Joint == "Elbow",]), aes(x = Limb, y = Error, fill = Group))+ geom_dotplot(binaxis='y', stackdir='center', dotsize=1, alpha = 0.5)  + ggtitle("Joint Angle Matching (Elbow): Limb x Group") + geom_line(aes(group = subject))
+```
+
+## Locognosia
+
+### All subjects
+
+```{r}
+LOC_GROUP$subject = factor(LOC_GROUP$subject)
+LOC_GROUP$Error = as.numeric(LOC_GROUP$Error)
+ggplot(data = LOC_GROUP, aes(x = Limb, y = Error, fill = subject)) +
+  geom_bar(stat = "identity", position=position_dodge())
+```
+
+### Loc dot plot
+
+```{r}
+ggplot((data = LOC_GROUP), aes(x = Limb, y = Error, fill = Group))+ geom_dotplot(binaxis='y', stackdir='center', dotsize=1, alpha = 0.75)  + ggtitle("Locognosia: Limb x Group")  + geom_line(aes(group = subject))
+```
+
+### Plotly Interactable plot
+
+```{r}
+p = ggplot((data = LOC_GROUP), aes(x = Limb, y = Error, fill = Group))+ geom_dotplot(binaxis='y', stackdir='center', dotsize=2) 
+
+plotly::ggplotly(p)
+```
+
+## Tactile Threshold
+
+```{r}
+THRESH_GROUP$subject = factor(THRESH_GROUP$subject )
+THRESH_GROUP$Error = as.numeric(THRESH_GROUP$Error)
+ggplot(data = THRESH_GROUP, aes(x = Hand, y = Error, fill = subject)) +
+  geom_bar(stat = "identity", position=position_dodge())
+```
+
+### Dotplot
+
+```{r}
+ggplot((data = THRESH_GROUP), aes(x = Hand, y = Error, fill = Group))+ geom_dotplot(binaxis='y', stackdir='center', dotsize=1, alpha = 0.75) + ggtitle("Tactile Threshold: Limb x Group") 
+```
+
+### Thenar
+
+```{r}
+ggplot((data = THRESH_GROUP[THRESH_GROUP$Site == "Thenar",]), aes(x = Hand, y = Error, fill = Group))+ geom_dotplot(binaxis='y', stackdir='center', dotsize=1, alpha = 0.75) + ggtitle("Tactile Threshold (Thenar): Limb x Group") + geom_line(aes(group = subject))
+```
+
+### Index
+
+```{r}
+ggplot((data = THRESH_GROUP[THRESH_GROUP$Site == "Index",]), aes(x = Hand, y = Error, fill = Group))+ geom_dotplot(binaxis='y', stackdir='center', dotsize=1, alpha = 0.5, binwidth = 0.075) + ggtitle("Tactile Threshold (Index): Limb x Group") + geom_line(aes(group = subject))
+```
+
+## NHPT
+
+### Read data
+
+```{r}
+setwd("~/Downloads/AHA_EEG/AHA_Behavior")
+NHPT = read_xlsx("NHP_Test_Group.xlsx", sheet=1)
+NHPT$TimeAvg[NHPT$TimeAvg == 0] = NA
+NHPT$TimeMin[NHPT$TimeMin == 0] = NA
+NHPT$TimeMax[NHPT$TimeMax == 0] = NA
+```
+
+### NHPT Dotplot
+
+```{r}
+ggplot(data = NHPT, aes(x = Limb, y = TimeAvg, fill = Group)) + geom_dotplot(binaxis='y', stackdir='center', dotsize=1, alpha = 0.5) + ggtitle("NHPT: Limb x Group") + geom_line(aes(group = Subject))
+```
+
+## Correlations
+
+```{r}
+plot(x = JAM_GROUP$Error, y = LOC_GROUP$Error)
+```
+
+## Export Group Data
+
+```{r}
+write.csv(NHPT, file = "NHPT_Group.csv")
+write.csv(LOC_GROUP, file = "LOC_GroupExport.csv")
+write.csv(JAM_GROUP, file = "JAM_GroupExport.csv")
+write.csv(THRESH_GROUP, file = "THRESH_GroupExport.csv")
+
+```
+
+# Main Plots
+
+```{r}
+setwd("/Users/nathan/Downloads/AHA_EEG/AHA_Behavior")
+mdata = read.csv("SensoryMaster.csv", header = T)
+```
+
+### Trace Stand NV x JAM
+
+```{r}
+ggplot(data = mdata, aes(x = JAMWrist, y = TraceSeatVS, color = Group)) + geom_point() + geom_smooth(method='lm', se = F) + facet_wrap(~ Hand ) +ylim(0,5)
+```
+
+### Trace x Loc
+
+```{r}
+ggplot(data = mdata, aes(x = LocError, y = TraceSeatVS, color = Group)) + geom_point() + geom_smooth(method='lm', se = F) + facet_wrap(~ Hand ) +ylim(0,5)
+```
+
+## Trace X Thresh: Thenar
+
+```{r}
+ggplot(data = mdata, aes(x = Thresh_Index, y = TraceSeatVS, color = Group)) + geom_point() + geom_smooth(method='lm', se = F) + facet_wrap(~ Hand ) +ylim(0,5)
+```
+
+## Trace x NHP
+
+```{r}
+ggplot(data = mdata, aes(x = NHPTTimeAvg, y = TraceSeatVS, color = Group)) + geom_point() + geom_smooth(method='lm', se = F) + facet_wrap(~ Hand ) +ylim(0,5)
+```

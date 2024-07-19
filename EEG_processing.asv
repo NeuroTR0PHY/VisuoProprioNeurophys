@@ -1123,10 +1123,10 @@ gammaPower = mean(10.^(spectra(gammaIdx)/10));
 baseDir = '/Volumes/BorichLab/NB_VPI_EEG';
 
 % Specify the channels of interest
-channels = {'C4' 'CP4'};
+channels = {'CP3', 'CP4', 'P3', 'P4', 'PO3', 'PO4', 'C3', 'C4'};
 
 % Specify whether to skip subjects with existing ERSP folder or rename it
-skipExistingERSP = false;
+skipExistingERSP = true;
 
 % Get a list of subject folders ending with .sub
 subjectFolders = dir(fullfile(baseDir, '*.sub'));
@@ -1233,28 +1233,9 @@ for i = 1:length(subjectFolders)
             csvwrite(fullfile(erspFolder, filename), ersp);
             
             % Calculate absolute power for different frequency bands
-           [numChannels, numTimePoints, numEpochs] = size(EEG_condition.data);
-            disp(['Number of channels: ' num2str(numChannels)]);
-            disp(['Number of time points: ' num2str(numTimePoints)]);
-            disp(['Number of epochs: ' num2str(numEpochs)]);
-            
-            
-            % Specify the time range in seconds
-            timeRange = [0 8]; % Analyze data from 0 to 1000 milliseconds (assuming 1000 Hz sampling rate)
-            
-            % Convert time range to sample points
-            startSample = round(timeRange(1) * EEG_condition.srate) + 1;
-            endSample = round(timeRange(2) * EEG_condition.srate);
-            
-            % Extract the desired time range from the data
-            data = EEG_condition.data(channelIdx, startSample:endSample, :);
-            
-            % Reshape the data to match the expected format (channels, frames, epochs)
-            data = reshape(data, 1, endSample - startSample + 1, numEpochs);
-            
-            % Call spectopo with the reshaped data
-            [spectra, freqs] = spectopo(data, 0, EEG_condition.srate, 'verbose', 'off');
-                        %[spectra, freqs] = spectopo(EEG_condition.data(channelIdx,:,:), 0, EEG_condition.srate, 'verbose', 'off');
+            timeRange = [0 1000]; % Specify the time range in milliseconds
+            [spectra, freqs] = spectopo(EEG_condition.data(channelIdx,:,:), timeRange, EEG_condition.srate, 'verbose', 'off');
+            %[spectra, freqs] = spectopo(EEG_condition.data(channelIdx,:,:), 0, EEG_condition.srate, 'verbose', 'off');
             
             deltaIdx = find(freqs>1 & freqs<4);
             thetaIdx = find(freqs>4 & freqs<8);
@@ -1298,11 +1279,6 @@ for i = 1:length(subjectFolders)
     
     fprintf('Completed ERSP and spectra calculation for subject %s.\n', subID);
 end
-
-    csvwrite('freqs.csv', frequencies(:));
-    csvwrite('times.csv', times(:));
-
-
 %% SAVING ERSP OUTPUT AS .CSV'S
 
 EEG_R_VS_STAND = pop_selectevent( EEG, 'type',{'RIGHT_VIS_STAND'},'deleteevents','off','deleteepochs','on','invertepochs','off');
