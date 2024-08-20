@@ -820,169 +820,211 @@ EEG = pop_epoch( EEG, {  }, [-4  9], 'newname', 'epoched', 'epochinfo', 'yes');
 %% clean by eye
 [ALLEEG EEG CURRENTSET] = pop_newset(ALLEEG, EEG, CURRENTSET,'savenew',[sub_ID '_epoched_cleaned'],'gui','off'); 
 
-%% Pre FOOOF: load in data
-% First, ensure EEGLAB is added to your MATLAB path and started
-eeglab;
+%% Pre FOOOF: loads fully preprocessed & cleaned data and creates average mat files for all subjects/electrodes/conditions
+% subjects (only subject directories with .sub extension) 
+% electrodes (manually specified below)
+% conditions (automatically taken from EEG.event.type)
+
+% Set up parallel processing
+if isempty(gcp('nocreate'))
+    parpool('local');
+end
 
 % Parameters
 overwriteExisting = true;
 renameExisting = true;
 subjectDirs = dir('*.sub');
 
-for subIdx = 1:length(subjectDirs)
-    subjectDir = subjectDirs(subIdx).name;
-    traceDir = fullfile(subjectDir, 'TRACE');
-    epochedCleanDir = fullfile(traceDir, 'epoched_clean');
-    
-    % Check if epoched_clean directory exists
-    if exist(epochedCleanDir, 'dir')
-        % Get the .set file in the epoched_clean directory
-        setFiles = dir(fullfile(epochedCleanDir, '*.set'));
+% Preallocate a cell array to store results
+results = cell(length(subjectDirs), 1);
+
+parfor subIdx = 1:length(subjectDirs)
+    try
+        subjectDir = subjectDirs(subIdx).name;
+        traceDir = fullfile(subjectDir, 'TRACE');
+        epochedCleanDir = fullfile(traceDir, 'epoched_clean');
         
-        if ~isempty(setFiles)
-            setFile = setFiles(1).name;
-            filePath = epochedCleanDir;
-            fileName = setFile;
+        % Check if epoched_clean directory exists
+        if exist(epochedCleanDir, 'dir')
+            % Get the .set file in the epoched_clean directory
+            setFiles = dir(fullfile(epochedCleanDir, '*.set'));
             
-            % Use pop_loadset to load the .set file
-            EEG = pop_loadset('filename', fileName, 'filepath', filePath);
-            
-            % Update EEGLAB GUI to show the loaded dataset
-            [ALLEEG, EEG, CURRENTSET] = eeg_store(ALLEEG, EEG, 0);
-            EEG = eeg_checkset( EEG );
-            eeglab redraw;
-            
-            % Pre FOOOF: pwelch for given subject, per epoch in all conditions and channels
-            % Performs pwelch on entire pre and post onset windows
-            % Parameters
-            fs = EEG.srate; % Sampling frequency from EEG object
-            nooverlap = 0;
-            nfft = max(256, 2^nextpow2(4 * fs));  % Use the larger window size for FFT points
-            channels = {'CP3' 'CP4' 'P3' 'P4' 'PO3' 'PO4' 'C3' 'C4'};
-            conditions = unique({EEG.event.type}); % Extract unique conditions
-            
-            pwelchDir = fullfile(traceDir, 'pwelchresults');
-            
-            % Check if pwelchresults directory already exists
-            if exist(pwelchDir, 'dir')
-                if renameExisting
-                    % Rename existing pwelchresults directory by adding a number at the end
-                    existingDirs = dir(fullfile(traceDir, 'pwelchresults*'));
-                    newDirName = sprintf('pwelchresults_%d', length(existingDirs));
-                    movefile(pwelchDir, fullfile(traceDir, newDirName));
-                else
-                    continue; % Skip this subject if pwelchresults directory already exists
-                end
-            end
-            
-            mkdir(pwelchDir);
-            
-            % Frequency range of interest (2 to 50 Hz)
-            freqRange = [2 50];
-            
-            % Loop through conditions, channels, and epochs
-            for cond = conditions
-                condDir = fullfile(pwelchDir, cond{1}); % Directory for this condition
+            if ~isempty(setFiles)
+                setFile = setFiles(1).name;
+                filePath = epochedCleanDir;
+                fileName = setFile;
                 
-                for ch = 1:length(channels)
-                    chName = channels{ch};
-                    chDir = fullfile(condDir, chName); % Directory for this channel
-                    
-                    preonsetDir = fullfile(chDir, 'preonset');
-                    postonsetDir = fullfile(chDir, 'postonset');
-                    if ~exist(preonsetDir, 'dir'); mkdir(preonsetDir); end
-                    if ~exist(postonsetDir, 'dir'); mkdir(postonsetDir); end
-                    
-                    epochIndices = find(strcmp({EEG.event.type}, cond{1}));
-                    
-                    for epochIdx = epochIndices
-                        epochPreonsetDir = fullfile(preonsetDir, sprintf('epoch_%d', epochIdx));
-                        epochPostonsetDir = fullfile(postonsetDir, sprintf('epoch_%d', epochIdx));
-                        if ~exist(epochPreonsetDir, 'dir'); mkdir(epochPreonsetDir); end
-                        if ~exist(epochPostonsetDir, 'dir'); mkdir(epochPostonsetDir); end
-                        
-                        % Pre-onset window
-                        preStartSample = max(1, fs * 1); % Start from 1 second into the epoch to avoid negative indexing
-                        preEndSample = fs * 3;  % End at 4 seconds, which is 4 * fs samples
-                        
-                        preFilename = fullfile(epochPreonsetDir, 'spec_pre.mat');
-                        if overwriteExisting || ~exist(preFilename, 'file')
-                            preSegmentData = EEG.data(ch, preStartSample:preEndSample, epochIdx);
-                            window_length = 2 * fs;  % Specify a fixed window length of 2 seconds (adjust as needed)
-                            [psd, freqs] = pwelch(preSegmentData, window_length, nooverlap, nfft, fs); % Use [] for automatic windowing
-                            
-                            % Extract PSD within the frequency range of interest
-                            freqIndices = freqs >= freqRange(1) & freqs <= freqRange(2);
-                            psd = psd(freqIndices);
-                            freqs = freqs(freqIndices);
-                            
-                            save(preFilename, 'psd', 'freqs');
-                        end
-                        
-                        % Post-onset window
-                        postStartSample = fs * 5;  % Start at 5 seconds into the epoch
-                        postEndSample = fs * 13;  % End at 14 seconds, which is 9 seconds after the 5-second mark
-                        
-                        postFilename = fullfile(epochPostonsetDir, 'spec_post.mat');
-                        if overwriteExisting || ~exist(postFilename, 'file')
-                            postSegmentData = EEG.data(ch, postStartSample:postEndSample, epochIdx);
-                            window_length = 2 * fs;  % Specify a fixed window length of 2 seconds (adjust as needed)
-                            [psd, freqs] = pwelch(postSegmentData, window_length, nooverlap, nfft, fs); % Use [] for automatic windowing
-                            
-                            % Extract PSD within the frequency range of interest
-                            freqIndices = freqs >= freqRange(1) & freqs <= freqRange(2);
-                            psd = psd(freqIndices);
-                            freqs = freqs(freqIndices);
-                            
-                            save(postFilename, 'psd', 'freqs');
-                        end
+                % Use pop_loadset to load the .set file
+                EEG = pop_loadset('filename', fileName, 'filepath', filePath);
+                
+                % Pre FOOOF: pwelch for given subject, per epoch in all conditions and channels
+                % Performs pwelch on entire pre and post onset windows
+                % Parameters
+                fs = EEG.srate; % Sampling frequency from EEG object
+                nooverlap = 0;
+                nfft = max(256, 2^nextpow2(4 * fs));  % Use the larger window size for FFT points
+                channels = {'CP3', 'CP4', 'P3', 'P4', 'PO3', 'PO4', 'C3', 'C4'};
+                conditions = unique({EEG.event.type}); % Extract unique conditions
+                
+                pwelchDir = fullfile(traceDir, 'pwelchresults');
+                
+                % Check if pwelchresults directory already exists
+                if exist(pwelchDir, 'dir')
+                    if renameExisting
+                        % Rename existing pwelchresults directory by adding a number at the end
+                        existingDirs = dir(fullfile(traceDir, 'pwelchresults*'));
+                        newDirName = sprintf('pwelchresults_%d', length(existingDirs));
+                        movefile(pwelchDir, fullfile(traceDir, newDirName));
+                    else
+                        continue; % Skip this subject if pwelchresults directory already exists
                     end
                 end
-            end
-            
-            % avg the results
-            % Parameters
-            baseDir = pwelchDir;
-            channels = {'CP3' 'CP4'};
-            conditions = unique({EEG.event.type}); % Extract unique conditions
-            
-            % Loop through conditions, channels, and pre/post onset directories
-            for cond = conditions
-                condDir = fullfile(baseDir, cond{1}); % Directory for this condition
                 
-                for ch = 1:length(channels)
-                    chName = channels{ch};
-                    chDir = fullfile(condDir, chName); % Directory for this channel
+                mkdir(pwelchDir);
+                
+                % Frequency range of interest (2 to 50 Hz)
+                freqRange = [2 50];
+                
+                % Process all conditions, channels, and epochs
+                processSubject(EEG, conditions, channels, fs, nooverlap, nfft, freqRange, pwelchDir, overwriteExisting);
+                
+                % Store results for this subject
+                results{subIdx} = struct('subject', subjectDir, 'status', 'Completed');
+            else
+                results{subIdx} = struct('subject', subjectDir, 'status', 'No .set file found');
+            end
+        else
+            results{subIdx} = struct('subject', subjectDir, 'status', 'No epoched_clean directory');
+        end
+    catch ME
+        % If an error occurs, store the error information
+        results{subIdx} = struct('subject', subjectDir, 'status', 'Error', 'message', ME.message);
+    end
+end
+
+% Delete the parallel pool when done
+delete(gcp('nocreate'));
+
+% Process and display results
+for i = 1:length(results)
+    if ~isempty(results{i})
+        fprintf('Subject: %s, Status: %s\n', results{i}.subject, results{i}.status);
+        if isfield(results{i}, 'message')
+            fprintf('Error message: %s\n', results{i}.message);
+        end
+    end
+end
+
+% Helper function to save data
+function parsave(fname, psd, freqs)
+    save(fname, 'psd', 'freqs');
+end
+
+% Function to process a single subject
+function processSubject(EEG, conditions, channels, fs, nooverlap, nfft, freqRange, pwelchDir, overwriteExisting)
+    for condIdx = 1:length(conditions)
+        cond = conditions{condIdx};
+        condDir = fullfile(pwelchDir, cond);
+        
+        for ch = 1:length(channels)
+            chName = channels{ch};
+            chDir = fullfile(condDir, chName);
+            
+            preonsetDir = fullfile(chDir, 'preonset');
+            postonsetDir = fullfile(chDir, 'postonset');
+            if ~exist(preonsetDir, 'dir'); mkdir(preonsetDir); end
+            if ~exist(postonsetDir, 'dir'); mkdir(postonsetDir); end
+            
+            epochIndices = find(strcmp({EEG.event.type}, cond));
+            
+            for epochIdx = epochIndices
+                epochPreonsetDir = fullfile(preonsetDir, sprintf('epoch_%d', epochIdx));
+                epochPostonsetDir = fullfile(postonsetDir, sprintf('epoch_%d', epochIdx));
+                if ~exist(epochPreonsetDir, 'dir'); mkdir(epochPreonsetDir); end
+                if ~exist(epochPostonsetDir, 'dir'); mkdir(epochPostonsetDir); end
+                
+                % Pre-onset window
+                preStartSample = max(1, fs * 1);
+                preEndSample = fs * 3;
+                
+                preFilename = fullfile(epochPreonsetDir, 'spec_pre.mat');
+                if overwriteExisting || ~exist(preFilename, 'file')
+                    preSegmentData = EEG.data(ch, preStartSample:preEndSample, epochIdx);
+                    window_length = 2 * fs;
+                    [psd, freqs] = pwelch(preSegmentData, window_length, nooverlap, nfft, fs);
                     
-                    preonsetDir = fullfile(chDir, 'preonset');
-                    postonsetDir = fullfile(chDir, 'postonset');
+                    % Extract PSD within the frequency range of interest
+                    freqIndices = freqs >= freqRange(1) & freqs <= freqRange(2);
+                    psd = psd(freqIndices);
+                    freqs = freqs(freqIndices);
                     
-                    for onsetDir = {preonsetDir, postonsetDir}
-                        onsetDir = onsetDir{1};
-                        epochDirs = dir(fullfile(onsetDir, 'epoch_*'));
-                        
-                        allEpochPsd = [];
-                        for i = 1:length(epochDirs)
-                            epochDir = fullfile(onsetDir, epochDirs(i).name);
-                            files = dir(fullfile(epochDir, '*.mat'));
-                            
-                            % Load PSD data from each epoch file and concatenate
-                            epochPsd = [];
-                            for j = 1:length(files)
-                                file = load(fullfile(epochDir, files(j).name));
-                                epochPsd = [epochPsd; file.psd'];
-                            end
-                            allEpochPsd = [allEpochPsd; epochPsd];
-                        end
-                        
-                        % Calculate average PSD
-                        avgPsd = mean(allEpochPsd, 1);
-                        
-                        % Save averaged PSD results
-                        avgFilename = fullfile(onsetDir, 'avg_spec.mat');
-                        save(avgFilename, 'avgPsd', 'freqs');
-                    end
+                    % Save psd and freqs directly
+                    parsave(preFilename, psd, freqs);
                 end
+                
+                % Post-onset window
+                postStartSample = fs * 5;
+                postEndSample = fs * 13;
+                
+                postFilename = fullfile(epochPostonsetDir, 'spec_post.mat');
+                if overwriteExisting || ~exist(postFilename, 'file')
+                    postSegmentData = EEG.data(ch, postStartSample:postEndSample, epochIdx);
+                    window_length = 2 * fs;
+                    [psd, freqs] = pwelch(postSegmentData, window_length, nooverlap, nfft, fs);
+                    
+                    % Extract PSD within the frequency range of interest
+                    freqIndices = freqs >= freqRange(1) & freqs <= freqRange(2);
+                    psd = psd(freqIndices);
+                    freqs = freqs(freqIndices);
+                    
+                    % Save psd and freqs directly
+                    parsave(postFilename, psd, freqs);
+                end
+            end
+        end
+    end
+    
+    % Average the results
+    averageResults(pwelchDir, conditions, channels);
+end
+
+% Function to average results
+function averageResults(baseDir, conditions, channels)
+    for condIdx = 1:length(conditions)
+        cond = conditions{condIdx};
+        condDir = fullfile(baseDir, cond);
+        
+        for ch = 1:length(channels)
+            chName = channels{ch};
+            chDir = fullfile(condDir, chName);
+            
+            preonsetDir = fullfile(chDir, 'preonset');
+            postonsetDir = fullfile(chDir, 'postonset');
+            
+            for onsetDir = {preonsetDir, postonsetDir}
+                onsetDir = onsetDir{1};
+                epochDirs = dir(fullfile(onsetDir, 'epoch_*'));
+                
+                allEpochPsd = [];
+                for i = 1:length(epochDirs)
+                    epochDir = fullfile(onsetDir, epochDirs(i).name);
+                    files = dir(fullfile(epochDir, '*.mat'));
+                    
+                    % Load PSD data from each epoch file and concatenate
+                    epochPsd = [];
+                    for j = 1:length(files)
+                        file = load(fullfile(epochDir, files(j).name));
+                        epochPsd = [epochPsd; file.psd'];
+                    end
+                    allEpochPsd = [allEpochPsd; epochPsd];
+                end
+                
+                % Calculate average PSD
+                avgPsd = mean(allEpochPsd, 1);
+                
+                % Save averaged PSD results
+                avgFilename = fullfile(onsetDir, 'avg_spec.mat');
+                parsave(avgFilename, avgPsd, file.freqs);
             end
         end
     end
